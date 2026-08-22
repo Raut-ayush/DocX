@@ -204,3 +204,5 @@ additional sync targets for other IDEs, or sharper default rules.
 **Made with ❤️ by [Ayush Raut](https://github.com/Raut-ayush)**
 
 </div>
+
+</div>

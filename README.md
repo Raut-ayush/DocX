@@ -65,7 +65,7 @@ dependencies), plus a clearly marked spot for your own house rules.
 <td>
 
 ```bash
-git clone https://github.com/Raut-ayush/DocX.git DocX
+git clone github:Raut-ayush/DocX
 python3 DocX/install.py
 ```
 
@@ -79,7 +79,7 @@ Then, in chat:
 <td>
 
 ```bash
-git clone https://github.com/Raut-ayush/DocX.git DocX
+git clone github:Raut-ayush/DocX
 python3 DocX/scripts/sync_rules.py .
 ```
 

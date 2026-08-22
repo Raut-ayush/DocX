@@ -1,5 +1,5 @@
 ---
-name: DocX
+name: docx
 description: Generates or updates a standard set of AI-development context docs for THIS project — docs/project.md, docs/PRD.md, docs/architecture.md, docs/state.md, docs/tasks.md — by scanning the codebase, reading any existing docs/README, and asking the user about the project's original idea/intent to evaluate real completion vs. what was planned. Use when the user tags this skill and says things like "start", "document this", "generate docs", "update docs", "status", or "figure out where this project is at". Works on any project regardless of language or stack.
 ---
 
@@ -12,11 +12,20 @@ useful for projects that were set aside and picked back up later.
 
 ## Output files (always in `docs/` at the project root)
 
-- **`docs/project.md`** — short index: one-paragraph summary, key stats, links to the other four docs.
+- **`docs/project.md`** — short index: one-paragraph summary, key stats, links to the other docs.
 - **`docs/PRD.md`** — the *why*: original idea, problem/motivation, target users, must-have features, non-goals, any known pivots.
 - **`docs/architecture.md`** — the *how*: tech stack, folder/module structure, key components, data flow, notable design decisions.
 - **`docs/state.md`** — the *where things stand*: completion stage + estimate, what's actually built vs. what the PRD calls for, known gaps/discrepancies, recent activity.
 - **`docs/tasks.md`** — the *what's next*: a checklist of concrete remaining work.
+- **`docs/decisions.md`** — an append-only log of notable technical/architecture decisions and why they were made.
+- **`docs/changes.md`** — an append-only changelog of what changed in the codebase since the last run.
+
+Note: `DocX/rules.md` (coding rules for the AI) is a separate, project-level
+file — not regenerated per run. It's synced into `CLAUDE.md`,
+`.github/copilot-instructions.md`, and `.cursor/rules/` by
+`scripts/sync_rules.py` (run once via `install.py`, or manually re-run
+after editing `rules.md`), so those rules are already in the AI's context
+every session — you don't need to re-read it here.
 
 ## Workflow
 
@@ -101,13 +110,41 @@ For each file, reason about what changed and write the updated version:
   call out any gap between what the PRD says should exist and what the
   code actually shows (e.g. "PRD lists user auth as a must-have; no auth
   code found in the scan").
+- **`decisions.md`** — **append-only**, never rewrite past entries. On first
+  run, seed it with any decisions you can reasonably infer (e.g. framework
+  choice, DB choice) dated as of today and clearly marked
+  "_reconstructed retroactively — not logged in real time_". On later runs,
+  compare the scan's `recent_commits` against what's already logged (match
+  by commit hash) and add new entries only for decisions not yet recorded —
+  don't log every commit, only ones that reflect a real technical/architecture
+  choice (a new dependency, a structural change, a chosen pattern). Format
+  each entry as:
+  ```
+  ## YYYY-MM-DD — <short title>
+  **Context:** why this came up
+  **Decision:** what was chosen
+  **Why:** the reasoning / trade-off
+  ```
 - **`tasks.md`** — regenerate as a checklist (`- [ ] ...`), pulling from
   TODO/FIXME markers, PRD requirements not yet met, and anything the user
   flagged. If the previous `tasks.md` had items checked off as done, only
   keep them checked if the code still reflects that (don't silently
   un-check completed work, but do add newly-discovered gaps).
-- **`project.md`** — always regenerate last, once the other four are final:
-  one paragraph summary + current stats + links.
+- **`changes.md`** — **append-only**, never rewrite past entries. On first
+  run, add one entry summarizing the current state as a baseline snapshot.
+  On later runs, compare the current scan against the previous `state.md`
+  (from `existing_ai_docs`) and the `recent_commits` list to summarize what
+  actually changed since the last run — new features, resolved gaps, new
+  dependencies. Keep entries dated and short:
+  ```
+  ## YYYY-MM-DD
+  - Added task CRUD endpoints
+  - Added Jest test coverage for src/app.js
+  ```
+  If the project has no git history to diff against, base this on what's
+  different between the old and new `state.md` content instead.
+- **`project.md`** — always regenerate last, once every other doc is final:
+  one paragraph summary + current stats + links to all six other docs.
 
 Be honest and specific in `percent_estimate` and gap analysis — never
 present a guess as more precise than it is, and don't just restate PRD/README

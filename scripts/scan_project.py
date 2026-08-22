@@ -138,6 +138,17 @@ def git_info(path: Path):
     status = run(["status", "--porcelain"])
     uncommitted_changes = len(status.splitlines()) if status else 0
     last_commit_msgs = run(["log", "-8", "--format=%s"])
+    recent_commits_raw = run(["log", "-30", "--format=%H|%cI|%s"])
+    recent_commits = []
+    if recent_commits_raw:
+        for line in recent_commits_raw.splitlines():
+            parts = line.split("|", 2)
+            if len(parts) == 3:
+                recent_commits.append({
+                    "hash": parts[0][:10],
+                    "date": parts[1],
+                    "subject": parts[2],
+                })
 
     return {
         "first_commit_date": first_commit_date,
@@ -147,6 +158,7 @@ def git_info(path: Path):
         "remote_url": remote,
         "uncommitted_changes": uncommitted_changes,
         "recent_commit_messages": last_commit_msgs.splitlines() if last_commit_msgs else [],
+        "recent_commits": recent_commits,
     }
 
 
@@ -181,7 +193,7 @@ def find_existing_ai_docs(path: Path):
     """Check for our own previously-generated doc set, so the workflow knows
     whether this is a first run or an update."""
     docs_dir = path / "docs"
-    names = ["project.md", "PRD.md", "architecture.md", "state.md", "tasks.md"]
+    names = ["project.md", "PRD.md", "architecture.md", "state.md", "tasks.md", "decisions.md", "changes.md"]
     existing = {}
     for name in names:
         fpath = docs_dir / name

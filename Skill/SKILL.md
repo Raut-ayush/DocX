@@ -154,10 +154,23 @@ claims without checking them against the actual code.
 
 Summarize in the chat what was created/changed — don't just say "done."
 Call out anything surprising (claims vs. reality mismatches, big gaps
-between PRD and current state).
+between PRD and current state). If the scan output has
+`"secrets_redacted": true`, tell the user directly that something
+resembling a secret was found and redacted from the scan (e.g. in a README
+or code comment) — this is a signal worth their attention even outside of
+DocX's own docs, since it may mean a real secret is sitting in tracked code.
 
 ## Notes
 
+- Files matching common secret patterns (`.env`, `*.pem`, `id_rsa`, etc.)
+  are never read or listed by the scan script, and any secret-shaped text
+  found elsewhere is redacted before it reaches you — but this is a
+  best-effort safety net, not a guarantee. Don't paste secrets into chat
+  yourself, and don't assume the absence of a redaction flag means none
+  exist.
+- The scan respects a project's `.gitignore` (best-effort — top-level
+  patterns, not full gitignore semantics) so generated/vendored folders
+  don't pollute the tech-stack and completion analysis.
 - This skill is designed to be dropped into any project and used standalone —
   it makes no assumptions about tech stack.
 - Re-running is meant to be safe and additive: it should leave the user in a

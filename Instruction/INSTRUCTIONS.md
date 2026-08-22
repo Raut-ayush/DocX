@@ -106,7 +106,11 @@ Be specific and honest about completion — don't just restate PRD/README
 claims without checking them against the actual code.
 
 **6. Summarize what changed** in the chat, and flag anything surprising
-(claims vs. reality mismatches, big PRD-vs-state gaps).
+(claims vs. reality mismatches, big PRD-vs-state gaps). If the scan output
+has `"secrets_redacted": true`, tell the user directly — something
+resembling a secret was found (e.g. in a README or code comment) and
+redacted from the scan output, which may mean a real secret is sitting in
+tracked code worth their attention.
 
 ## Rules sync (recommended, one-time)
 
@@ -130,3 +134,11 @@ those files. Re-run it any time you edit `DocX/rules.md`.
   but degrades gracefully if none are found.
 - Re-running should always leave the project better documented than before —
   never silently destroy prior human-written content.
+- Files matching common secret patterns (`.env`, `*.pem`, `id_rsa`, etc.)
+  are never read by the scan, and secret-shaped text found elsewhere is
+  redacted before it reaches you. This is a best-effort safety net, not a
+  guarantee — don't paste secrets into chat, and don't assume a missing
+  redaction flag means none exist.
+- The scan respects a project's `.gitignore` (best-effort — top-level
+  patterns, not full gitignore semantics) so generated/vendored folders
+  don't skew the tech-stack and completion analysis.

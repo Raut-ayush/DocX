@@ -57,13 +57,15 @@ dependencies), plus a clearly marked spot for your own house rules.
 
 ## 🚀 Quick start
 
+> **Windows:** if `python3` isn't recognized, use `python` instead.
+
 <table>
 <tr><th>Claude Code</th><th>Cursor / Copilot / any agentic IDE chat</th></tr>
 <tr valign="top">
 <td>
 
 ```bash
-git clone <this-repo-url> DocX
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/install.py
 ```
 
@@ -77,7 +79,7 @@ Then, in chat:
 <td>
 
 ```bash
-git clone <this-repo-url> DocX
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/scripts/sync_rules.py .
 ```
 
@@ -102,6 +104,22 @@ intent is preserved unless you say it's changed, `decisions.md` and
 actually still left.
 
 Full walkthrough → [`USE.md`](./USE.md)
+
+## 🔒 Safety by default
+
+- **Sensitive files are never read.** `.env`, `*.pem`, `id_rsa`, credential
+  and service-account files are excluded from the scan entirely — not
+  summarized, not quoted, not listed.
+- **Stray secrets get redacted.** If something that looks like an API key,
+  token, or private key shows up in a README or code comment, it's replaced
+  with `[REDACTED]` before it ever reaches the generated docs — and DocX
+  tells you when this happens, since it usually means a real secret is
+  sitting in tracked code.
+- **`.gitignore` is respected** (best-effort) so build output and vendored
+  folders don't get treated as "your code."
+
+This is a safety net, not a guarantee — it doesn't replace keeping secrets
+out of git in the first place.
 
 ## 🧠 How it works
 

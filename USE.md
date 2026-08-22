@@ -1,11 +1,15 @@
 # Using DocX
 
+> **Windows note:** if `python3` isn't recognized in your terminal, use
+> `python` instead in every command below (some Windows Python installs
+> only register the `python` command).
+
 Two ways to use it, pick one:
 
 ## Claude Code
 
 ```bash
-git clone Raut-ayush/DocX 
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/install.py
 ```
 
@@ -23,7 +27,7 @@ Re-run it if you ever edit `Skill/SKILL.md` or `rules.md`.
 ## Cursor / Copilot Chat / any other agentic IDE chat
 
 ```bash
-git clone <this-repo-url> DocX
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/scripts/sync_rules.py .
 ```
 

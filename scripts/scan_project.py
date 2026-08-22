@@ -20,7 +20,9 @@ Output: JSON to stdout.
 
 import sys
 import os
+import re
 import json
+import fnmatch
 import subprocess
 from pathlib import Path
 
@@ -45,6 +47,96 @@ IGNORE_DIRS = {
     # below only catches the copy actually running, not this leftover.
     "DocX",
 }
+
+# Files matching these patterns are never walked into, read, or included
+# in output — even their names aren't listed. Best-effort, filename-based;
+# not a substitute for keeping secrets out of git in the first place.
+SENSITIVE_FILE_PATTERNS = [
+    ".env", ".env.*", "*.pem", "*.key", "*.pfx", "*.p12", "*.keystore",
+    "id_rsa", "id_rsa.pub", "id_ed25519", "id_ed25519.pub",
+    "credentials.json", "credentials.yml", "credentials.yaml",
+    "secrets.json", "secrets.yml", "secrets.yaml",
+    "service-account*.json", "service_account*.json",
+    ".npmrc", ".pypirc", ".netrc",
+]
+
+# Regex patterns for common secret formats. Applied to any free-text content
+# (README, TODO lines, manifest snippets) before it's ever included in the
+# scan output, as a defense-in-depth safety net on top of the filename
+# exclusions above — those catch whole sensitive files, this catches a
+# stray key pasted into an otherwise-normal file.
+SECRET_PATTERNS = [
+    re.compile(r"AKIA[0-9A-Z]{16}"),                                    # AWS access key ID
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),                          # GitHub tokens
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),                        # Slack tokens
+    re.compile(r"(?is)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"(?i)\bbearer\s+[A-Za-z0-9\-_\.]{10,}"),                # Bearer tokens
+    re.compile(r"(?i)\b(api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*['\"]?[A-Za-z0-9\-_\.\/+=]{8,}['\"]?"),
+]
+
+
+def redact_secrets(text):
+    """Best-effort redaction of common secret formats from free text before
+    it's included in scan output. Returns (clean_text, was_redacted)."""
+    if not text:
+        return text, False
+    redacted = False
+    for pattern in SECRET_PATTERNS:
+        new_text = pattern.sub("[REDACTED]", text)
+        if new_text != text:
+            redacted = True
+        text = new_text
+    return text, redacted
+
+
+def is_sensitive_file(name: str) -> bool:
+    return any(fnmatch.fnmatch(name, pat) for pat in SENSITIVE_FILE_PATTERNS)
+
+
+def load_gitignore_patterns(root: Path):
+    """Lightweight, best-effort .gitignore parser — not full gitignore
+    semantics (no nested .gitignore files, simplified negation), but enough
+    to keep custom-named build/output folders out of the scan."""
+    gi = root / ".gitignore"
+    patterns = []
+    if gi.exists():
+        try:
+            for line in gi.read_text(errors="ignore").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                patterns.append(line)
+        except Exception:
+            pass
+    return patterns
+
+
+def gitignore_matches(rel_path: str, is_dir: bool, patterns) -> bool:
+    if not patterns:
+        return False
+    name = rel_path.rsplit("/", 1)[-1]
+    ignored = False
+    for pat in patterns:
+        p = pat
+        negate = p.startswith("!")
+        if negate:
+            p = p[1:]
+        dir_only = p.endswith("/")
+        if dir_only:
+            p = p.rstrip("/")
+        p = p.lstrip("/")
+        matched = (
+            fnmatch.fnmatch(rel_path, p)
+            or fnmatch.fnmatch(name, p)
+            or fnmatch.fnmatch(rel_path, p + "/*")
+            or rel_path.startswith(p + "/")
+        )
+        if matched:
+            if dir_only and not is_dir:
+                continue
+            ignored = not negate
+    return ignored
+
 
 MANIFEST_PARSERS = {
     "package.json": "node",
@@ -111,7 +203,9 @@ def parse_pyproject_toml(path: Path):
     if not fpath.exists():
         return None
     try:
-        return fpath.read_text(errors="ignore")[:1500]
+        text = fpath.read_text(errors="ignore")[:1500]
+        text, _ = redact_secrets(text)
+        return text
     except Exception:
         return None
 
@@ -162,23 +256,31 @@ def git_info(path: Path):
     }
 
 
-def walk_files(path: Path, max_files=6000):
+def walk_files(path: Path, gitignore_patterns, max_files=6000):
     files = []
     lang_counts = {}
     for root, dirs, fnames in os.walk(path):
+        rel_root = Path(root).relative_to(path)
         dirs[:] = [
             d for d in dirs
             if d not in IGNORE_DIRS
             and not d.startswith(".")
             and (Path(root) / d).resolve() != TOOL_ROOT
+            and not gitignore_matches(
+                str((rel_root / d).as_posix()) if str(rel_root) != "." else d,
+                True, gitignore_patterns
+            )
         ]
         for f in fnames:
             if len(files) >= max_files:
                 break
-            fpath = Path(root) / f
-            rel = fpath.relative_to(path)
-            files.append(str(rel))
-            ext = fpath.suffix.lower()
+            if is_sensitive_file(f):
+                continue
+            rel = (rel_root / f).as_posix() if str(rel_root) != "." else f
+            if gitignore_matches(rel, False, gitignore_patterns):
+                continue
+            files.append(rel)
+            ext = Path(f).suffix.lower()
             if ext in EXT_LANGUAGE:
                 lang = EXT_LANGUAGE[ext]
                 lang_counts[lang] = lang_counts.get(lang, 0) + 1
@@ -209,6 +311,7 @@ def count_todos(path: Path, files, max_scan=1500):
     count = 0
     examples = []
     scanned = 0
+    any_redacted = False
     for rel in files:
         ext = Path(rel).suffix.lower()
         if ext not in EXT_LANGUAGE and ext not in {".md"}:
@@ -228,9 +331,11 @@ def count_todos(path: Path, files, max_scan=1500):
                 if len(examples) < 10:
                     for line in text.splitlines():
                         if marker in line:
-                            examples.append(f"{rel}: {line.strip()[:120]}")
+                            clean_line, was_redacted = redact_secrets(line.strip()[:120])
+                            any_redacted = any_redacted or was_redacted
+                            examples.append(f"{rel}: {clean_line}")
                             break
-    return count, examples[:10]
+    return count, examples[:10], any_redacted
 
 
 def read_readme(path: Path):
@@ -238,10 +343,12 @@ def read_readme(path: Path):
         fpath = path / name
         if fpath.exists():
             try:
-                return fpath.read_text(errors="ignore")[:8000]
+                text = fpath.read_text(errors="ignore")[:8000]
+                text, was_redacted = redact_secrets(text)
+                return text, was_redacted
             except Exception:
                 pass
-    return None
+    return None, False
 
 
 def main():
@@ -251,13 +358,18 @@ def main():
         print(json.dumps({"error": f"path does not exist: {path}"}))
         sys.exit(1)
 
-    files, lang_counts = walk_files(path)
+    gitignore_patterns = load_gitignore_patterns(path)
+    files, lang_counts = walk_files(path, gitignore_patterns)
     top_level = sorted([
         p.name + ("/" if p.is_dir() else "")
         for p in path.iterdir()
-        if p.name not in IGNORE_DIRS and not p.name.startswith(".")
+        if p.name not in IGNORE_DIRS
+        and not p.name.startswith(".")
+        and not is_sensitive_file(p.name)
+        and not gitignore_matches(p.name, p.is_dir(), gitignore_patterns)
     ])
-    todo_count, todo_examples = count_todos(path, files)
+    todo_count, todo_examples, todo_redacted = count_todos(path, files)
+    readme_content, readme_redacted = read_readme(path)
 
     result = {
         "name": path.name,
@@ -271,10 +383,12 @@ def main():
         "pyproject_toml_snippet": parse_pyproject_toml(path),
         "git": git_info(path),
         "doc_files_in_repo": find_docs(files),
-        "readme_content": read_readme(path),
+        "readme_content": readme_content,
         "todo_fixme_count": todo_count,
         "todo_fixme_examples": todo_examples,
         "existing_ai_docs": find_existing_ai_docs(path),
+        "secrets_redacted": bool(readme_redacted or todo_redacted),
+        "gitignore_respected": bool(gitignore_patterns),
     }
     print(json.dumps(result, indent=2, default=str))
 

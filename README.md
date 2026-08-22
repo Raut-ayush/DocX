@@ -197,3 +197,10 @@ additional sync targets for other IDEs, or sharper default rules.
 
 [MIT](./LICENSE) — copy it, fork it, change it, ship it.
 
+<br>
+
+<div align="center">
+
+**Made with ❤️ by [Ayush Raut](https://github.com/Raut-ayush)**
+
+</div>

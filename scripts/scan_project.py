@@ -351,6 +351,19 @@ def read_readme(path: Path):
     return None, False
 
 
+def detect_new_project(total_files: int, manifests_found: list, git_data) -> bool:
+    """Best-effort heuristic: is there basically nothing here yet? Used to
+    offer switching into planning mode instead of documenting existing
+    code — the caller should always confirm with the user before acting
+    on this, never switch modes silently."""
+    file_signal = total_files <= 3
+    manifest_signal = len(manifests_found) == 0
+    commit_signal = True
+    if git_data:
+        commit_signal = (git_data.get("commit_count") or 0) <= 1
+    return file_signal and manifest_signal and commit_signal
+
+
 def main():
     target = sys.argv[1] if len(sys.argv) > 1 else "."
     path = Path(target).expanduser().resolve()
@@ -370,6 +383,8 @@ def main():
     ])
     todo_count, todo_examples, todo_redacted = count_todos(path, files)
     readme_content, readme_redacted = read_readme(path)
+    manifests_found = find_manifests(path)
+    git_data = git_info(path)
 
     result = {
         "name": path.name,
@@ -377,11 +392,11 @@ def main():
         "top_level_entries": top_level,
         "total_files_scanned": len(files),
         "language_file_counts": lang_counts,
-        "manifests_found": find_manifests(path),
+        "manifests_found": manifests_found,
         "package_json": parse_package_json(path),
         "requirements_txt": parse_requirements_txt(path),
         "pyproject_toml_snippet": parse_pyproject_toml(path),
-        "git": git_info(path),
+        "git": git_data,
         "doc_files_in_repo": find_docs(files),
         "readme_content": readme_content,
         "todo_fixme_count": todo_count,
@@ -389,6 +404,7 @@ def main():
         "existing_ai_docs": find_existing_ai_docs(path),
         "secrets_redacted": bool(readme_redacted or todo_redacted),
         "gitignore_respected": bool(gitignore_patterns),
+        "likely_new_project": detect_new_project(len(files), manifests_found, git_data),
     }
     print(json.dumps(result, indent=2, default=str))
 

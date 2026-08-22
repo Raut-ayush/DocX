@@ -50,12 +50,59 @@ history, README content, other doc files, TODO/FIXME markers, and the
 contents of any docs this workflow previously generated (so you know if
 you're updating rather than starting fresh).
 
-**2. Check for prior docs.** If `existing_ai_docs` in the script output has
+**2. Decide: existing project, or brand-new?** Check `likely_new_project`
+in the script output (a heuristic: almost no files, no manifests, no/minimal
+git history — stays `true` even after planning docs exist, since `docs/`
+itself isn't counted as code). **Never switch modes silently:**
+
+- `true` and `existing_ai_docs` empty → confirm first: "Looks like there's
+  little or no existing code here — want me to help you plan this project
+  out from scratch instead of documenting existing code?" If confirmed, go
+  to **Step 2a**.
+- `true` but `existing_ai_docs` already has content → planning was already
+  done in an earlier run and no code exists yet. Don't re-ask the planning
+  questions — check in instead: ask if they've started building or if plans
+  changed. If not, just regenerate `state.md`/`changes.md` noting "still no
+  code written since last check-in" and leave the rest as-is.
+- `false` → continue at Step 3, no need to ask.
+- User declines planning mode or says there's more here → continue at Step 3.
+
+**Step 2a — Planning mode (new project).** Ask:
+
+1. What do you want to build? What problem does it solve?
+2. Who is it for?
+3. What are the must-have features for a first version?
+4. Any tech stack preference, or should I suggest one?
+5. Anything explicitly out of scope for now?
+
+Write the docs with a forward-looking framing instead of a reverse-engineered
+one:
+
+- `PRD.md`: written directly from the answers (primary source, not inferred).
+- `architecture.md`: a **proposed** plan — tech stack with a one-line reason
+  each, planned structure, key components to build. Head it "Proposed — not
+  yet implemented" so it's never mistaken for real code.
+- `state.md`: stage `idea`, `percent_estimate` near 0, confidence notes
+  saying this is a planning baseline, no code yet.
+- `tasks.md`: an initial build roadmap from the PRD's must-have features —
+  a real starting backlog, not TODO-scraped.
+- `decisions.md`: log decisions actually made in this planning conversation
+  (stack choice, trade-offs), same dated format as below.
+- `changes.md`: one baseline entry — "Project initialized — planning docs
+  created, no code written yet."
+- `project.md`: the usual index, last.
+
+Stay docs-only — write the plan, don't scaffold files or folders. The user
+can ask you to start building against `tasks.md` directly afterward, with
+`rules.md` already governing how you code it. Then skip to step 6
+(Summarize) — steps 3-5 below are for the existing-project flow.
+
+**3. Check for prior docs.** If `existing_ai_docs` in the script output has
 content, this is an update — tell the user briefly what the existing PRD
 says and treat it as the last known statement of intent, rather than
 ignoring it.
 
-**3. Ask about the original idea** (skip only if a confirmed PRD already
+**4. Ask about the original idea** (skip only if a confirmed PRD already
 exists). Ask:
 
 1. What was the original idea / problem you were trying to solve?
@@ -68,11 +115,11 @@ idea from the README, commit messages, and code — but clearly mark that
 part of the PRD as **inferred, not confirmed**, so they know to double-check
 it later.
 
-**4. Read a little more code if needed** — entry points, routing/config
+**5. Read a little more code if needed** — entry points, routing/config
 files, main modules — only enough to describe the architecture and evaluate
 completion accurately. Don't try to read the whole codebase.
 
-**5. Write the docs**, following the same logic each time:
+**6. Write the docs**, following the same logic each time:
 
 - `PRD.md`: write fresh from the user's answers (or inferred + labeled) on
   first run. On updates, keep prior intent unless the user's new answers
@@ -105,7 +152,7 @@ completion accurately. Don't try to read the whole codebase.
 Be specific and honest about completion — don't just restate PRD/README
 claims without checking them against the actual code.
 
-**6. Summarize what changed** in the chat, and flag anything surprising
+**7. Summarize what changed** in the chat, and flag anything surprising
 (claims vs. reality mismatches, big PRD-vs-state gaps). If the scan output
 has `"secrets_redacted": true`, tell the user directly — something
 resembling a secret was found (e.g. in a README or code comment) and

@@ -51,6 +51,12 @@ at your project root. Run it again any time to refresh — it updates rather
 than starting over, and `decisions.md`/`changes.md` grow as a running log
 instead of being rewritten.
 
+**Starting a brand-new project?** If DocX finds little or no existing code,
+it'll ask whether you'd like to plan the project out instead — same idea,
+but the docs get written *before* any code exists: a real PRD from your
+answers, a proposed architecture, and an initial task backlog to build
+against. It always confirms with you first, never switches modes silently.
+
 Want to tune the coding rules? Edit `DocX/rules.md` directly — there's a
 "Your Custom Rules" section at the bottom just for that — then re-run the
 sync step above.

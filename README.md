@@ -4,8 +4,9 @@
 
 ### Your project, documented — and your AI, disciplined.
 
-*Drop it in. Ask it to start. Get seven docs that actually reflect reality —*
-*and coding rules your AI assistant actually follows, every session.*
+*Drop it in on day one, or after years of neglect — either way,*
+*get seven docs that actually reflect reality, and coding rules*
+*your AI assistant actually follows, every session.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20%7C%20Cursor%20%7C%20Copilot-6f42c1)](#-compatibility)
@@ -24,7 +25,11 @@ done — you're not sure anymore. You open one in your AI-powered IDE, ask it
 to "add the export feature," and it confidently invents an architecture
 that doesn't match what's actually there.
 
-**DocX fixes the context problem at the source.**
+Or — the opposite problem — you're starting something brand new, and you
+jump straight into asking your AI to write code before either of you has
+actually nailed down what you're building.
+
+**DocX fixes the context problem at the source, either way.**
 
 ## ✨ What it does
 
@@ -55,6 +60,57 @@ context from turn one. Balanced defaults out of the box (match existing
 style, don't over-engineer, ask before big changes, no silent new
 dependencies), plus a clearly marked spot for your own house rules.
 
+## 🌱 Two starting points, one workflow
+
+DocX doesn't assume there's code to scan. It checks, and adapts.
+
+### 📚 Reviving an old project
+
+This is the case DocX was built for first: you open a project you haven't
+touched in months, and neither you nor the AI actually remembers what's
+really been built vs. just planned. DocX scans the real codebase — git
+history, dependencies, TODOs, whatever docs already exist — and writes
+docs that reflect *what's actually there*, catching the gap when a README
+claims something's done but the code says otherwise.
+
+### 🆕 Starting a brand-new project
+
+The same blind-spot problem shows up in reverse when there's *no* code
+yet: people jump straight into "build me X," and the AI starts making
+architecture decisions on the fly with nothing to anchor them — no
+documented reasoning, no plan to check work against later.
+
+When DocX finds an almost-empty directory, it notices and offers to
+switch into **planning mode** instead of trying to document nothing. It
+always asks first — never assumes:
+
+> *"Looks like there's little or no existing code here — want me to help
+> you plan this project out from scratch instead of documenting existing
+> code?"*
+
+If you say yes, it asks a handful of sharp questions (what you're
+building, who it's for, must-have features for v1, tech stack preference)
+and writes the same seven docs, just framed forward instead of backward:
+
+| File | For an existing project | For a brand-new one |
+|---|---|---|
+| `PRD.md` | Reconstructed from code + your answers | Written directly from your answers — the source of truth |
+| `architecture.md` | Describes what's actually built | A **proposed** plan, clearly labeled "not yet implemented" |
+| `state.md` | Real completion %, with gaps called out | Honest 0% baseline — nothing built yet |
+| `tasks.md` | Scraped from TODOs + PRD gaps | A real starting roadmap, not a TODO-scrape |
+
+**Why this matters:** the plan DocX writes isn't just a record — it's
+exactly what you hand the AI next. Once `PRD.md` and `architecture.md`
+exist, you can ask the AI to start building against `tasks.md` in the same
+or a later session, and `rules.md` (already loaded into its context) keeps
+it disciplined while it does. As you build, the AI gives you a light nudge
+to re-run DocX after finishing meaningful chunks of work, so `state.md`,
+`tasks.md`, and `decisions.md` stay honest instead of drifting out of date
+the way most planning docs do.
+
+DocX stays docs-only either way — it writes the plan, it doesn't scaffold
+files or folders for you.
+
 ## 🚀 Quick start
 
 > **Windows:** if `python3` isn't recognized, use `python` instead.
@@ -65,7 +121,7 @@ dependencies), plus a clearly marked spot for your own house rules.
 <td>
 
 ```bash
-git clone github:Raut-ayush/DocX
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/install.py
 ```
 
@@ -79,7 +135,7 @@ Then, in chat:
 <td>
 
 ```bash
-git clone github:Raut-ayush/DocX
+git clone https://github.com/Raut-ayush/DocX.git DocX
 python3 DocX/scripts/sync_rules.py .
 ```
 
@@ -197,12 +253,10 @@ additional sync targets for other IDEs, or sharper default rules.
 
 [MIT](./LICENSE) — copy it, fork it, change it, ship it.
 
-<br>
+---
 
 <div align="center">
 
-**Made with ❤️ by [Ayush Raut](https://github.com/Raut-ayush)**
-
-</div>
+Made with ❤️ by **Ayush Raut**
 
 </div>

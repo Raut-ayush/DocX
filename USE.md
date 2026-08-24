@@ -9,7 +9,7 @@ Two ways to use it, pick one:
 ## Claude Code
 
 ```bash
-git clone https://github.com/Raut-ayush/DocX.git DocX
+git clone github:Raut-ayush/DocX 
 python3 DocX/install.py
 ```
 
@@ -27,7 +27,7 @@ Re-run it if you ever edit `Skill/SKILL.md` or `rules.md`.
 ## Cursor / Copilot Chat / any other agentic IDE chat
 
 ```bash
-git clone https://github.com/Raut-ayush/DocX.git DocX
+git clone github:Raut-ayush/DocX 
 python3 DocX/scripts/sync_rules.py .
 ```
 
@@ -54,7 +54,7 @@ instead of being rewritten.
 ## Starting a brand-new project
 
 Same clone, same command — DocX just behaves differently once it notices
-there's basically no code yet. It never assumes; it always asks first:
+there's basically no code yet. It never assumes; it always asks first: For Example: 
 
 ```
 You: @DocX start
